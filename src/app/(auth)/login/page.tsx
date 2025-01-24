@@ -1,58 +1,103 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
-import { Lesson } from '@/lib/types'
-import { LessonCard } from '@/components/lessons/LessonCard'
-import { Navigation } from '@/components/shared/Navigation'
+import { Button } from '@/components/ui/Button'
+import Link from 'next/link'
 
-export default function LessonsPage() {
-  const [lessons, setLessons] = useState<Lesson[]>([])
-  const [loading, setLoading] = useState(true)
+export default function LoginPage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  })
 
-  useEffect(() => {
-    async function fetchLessons() {
-      try {
-        const { data, error } = await supabase
-          .from('lessons')
-          .select('*')
-          .eq('status', 'published')
-          .order('created_at', { ascending: false })
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
 
-        if (error) throw error
-        setLessons(data || [])
-      } catch (error) {
-        console.error('Error fetching lessons:', error)
-      } finally {
-        setLoading(false)
-      }
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      })
+
+      if (error) throw error
+
+      router.push('/lessons')
+      router.refresh()
+    } catch (error) {
+      console.error('Error:', error)
+      alert('خطأ في تسجيل الدخول')
+    } finally {
+      setLoading(false)
     }
-
-    fetchLessons()
-  }, [])
+  }
 
   return (
-    <div>
-      <Navigation />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold mb-8">الدروس المتاحة</h1>
-        
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            تسجيل الدخول
+          </h2>
+        </div>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="rounded-md shadow-sm -space-y-px">
+            <div>
+              <label htmlFor="email" className="sr-only">
+                البريد الإلكتروني
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="البريد الإلكتروني"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="sr-only">
+                كلمة المرور
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="كلمة المرور"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              />
+            </div>
           </div>
-        ) : lessons.length === 0 ? (
-          <div className="text-center text-gray-600">
-            لا توجد دروس متاحة حالياً
+
+          <div>
+            <Button
+              type="submit"
+              className="w-full"
+              isLoading={loading}
+            >
+              تسجيل الدخول
+            </Button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {lessons.map((lesson) => (
-              <LessonCard key={lesson.id} lesson={lesson} />
-            ))}
+
+          <div className="text-center">
+            <Link
+              href="/register"
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              ليس لديك حساب؟ سجل الآن
+            </Link>
           </div>
-        )}
-      </main>
+        </form>
+      </div>
     </div>
   )
 }
